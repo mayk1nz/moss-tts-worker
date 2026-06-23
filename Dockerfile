@@ -14,12 +14,18 @@ ENV HF_HOME=/app/hf \
     MP3_BITRATE=64k \
     DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
+    CC=/usr/bin/gcc \
+    CXX=/usr/bin/g++ \
+    TORCHINDUCTOR_MAX_AUTOTUNE=0 \
+    TORCH_COMPILE_DISABLE=1 \
     # MOSS-TTS-v1.5 = 8B BF16 ~16GB modelo, sobra ~6GB pra ativacoes em 24GB GPU
     PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
-# System libs (soundfile/ffmpeg)
+# System libs + C compiler (transformers/torch.compile compila kernels em
+# runtime via triton — imagem PyTorch runtime nao tem gcc, model load falha
+# com InductorError: Failed to find C compiler. Visto no voxcpm-worker.)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      libsndfile1 ffmpeg git \
+      libsndfile1 ffmpeg git gcc g++ \
     && rm -rf /var/lib/apt/lists/*
 
 # Layer 1: runpod PRIMEIRO (queremos ele matched com torch original da imagem)
