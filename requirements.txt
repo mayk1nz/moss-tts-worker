@@ -1,0 +1,8 @@
+runpod
+transformers==5.0.0
+soundfile
+numpy
+huggingface_hub
+einops
+accelerate
+sentencepiece
