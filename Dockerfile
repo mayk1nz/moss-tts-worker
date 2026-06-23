@@ -22,18 +22,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libsndfile1 ffmpeg git \
     && rm -rf /var/lib/apt/lists/*
 
-# Layer 1: base deps que NAO sao do torch
-RUN pip install --no-cache-dir \
+# Layer 1: runpod PRIMEIRO (queremos ele matched com torch original da imagem)
+RUN pip install --no-cache-dir --upgrade-strategy=only-if-needed \
       runpod soundfile numpy huggingface_hub einops accelerate sentencepiece
 
-# Layer 2: transformers 5.0.0 exato (requirement do MOSS-TTS-v1.5)
-RUN pip install --no-cache-dir transformers==5.0.0
-
-# Layer 3: force-reinstall trio torch matched cu128 (mesmo padrao chatterbox/voxcpm)
-# Pinado em 2.9.1+cu128 conforme pyproject.toml do MOSS-TTS.
-RUN pip install --no-cache-dir --force-reinstall --no-deps \
-      --index-url https://download.pytorch.org/whl/cu128 \
-      torch==2.9.1 torchvision==0.24.1 torchaudio==2.9.1
+# Layer 2: transformers 5.0.0 (requirement MOSS) + torch 2.9.1 matched
+# Usa --upgrade pra deixar pip resolver deps corretamente (sem --force-reinstall
+# que quebrava o runpod). Se torch 2.9 vir como dep do transformers, pega
+# a cu128 do index PyTorch.
+RUN pip install --no-cache-dir --upgrade \
+      --extra-index-url https://download.pytorch.org/whl/cu128 \
+      "transformers==5.0.0" \
+      "torch==2.9.1" \
+      "torchvision==0.24.1" \
+      "torchaudio==2.9.1"
 
 # Pre-baixa pesos (cold start nao precisa baixar). 16GB+ download — pode falhar
 # no build host se nao tiver disk. Se cair, runtime baixa.
